@@ -3,9 +3,16 @@ const socket = io();
 const chess = new Chess();
 const boardElement = document.querySelector(".chessboard");
 
+const moveSound = new Audio('/sounds/move-self.mp3');
+const checkSound = new Audio('/sounds/move-check.mp3');
+const captureSound = new Audio('/sounds/capture.mp3');
+
 let draggedPiece = null;
 let sourceSquare = null;
 let playerRole = null;
+
+// Elements for promotion UI
+let promotionUI = null;
 
 const renderBoard = () => {
     const board = chess.board();
@@ -77,18 +84,62 @@ const renderBoard = () => {
     {
         boardElement.classList.remove("flipped");
     }
-
-
 };
 
 const handleMove = (source,target) => {
+    
     const move = {
         from : `${String.fromCharCode(97+source.col)}${8-source.row}`,
         to : `${String.fromCharCode(97+target.col)}${8-target.row}`,
         promotion : "q",
     };
-    socket.emit("move",move);
+    // Check for pawn promotion
+    if (chess.get(move.from).type === 'p' && (move.to[1] === '1' || move.to[1] === '8')) {
+        showPromotionUI(move, (promotion) => {
+            move.promotion = promotion;
+            socket.emit("move", move);
+        });
+    } else {
+        socket.emit("move", move);
+    }
 };
+
+// Pawn promotion Logic
+
+const showPromotionUI = (move, callback) => {
+    promotionUI = document.createElement("div");
+    promotionUI.classList.add("promotion-container");
+
+    const pieces = ["q", "r", "b", "n"]; // queen, rook, bishop, knight
+
+    pieces.forEach(piece => {
+        const button = document.createElement("button");
+        button.classList.add("promotion-button");
+        button.innerText = getPieceUnicode({ type: piece, color: chess.turn() });
+
+        button.addEventListener("click", () => {
+            promotionUI.remove();
+            callback(piece);
+        });
+
+        promotionUI.appendChild(button);
+    });
+
+    // Calculate the position of the promotion UI
+    const targetSquare = document.querySelector(
+        `.square[data-row="${8 - parseInt(move.to[1], 10)}"][data-col="${move.to.charCodeAt(0) - 97}"]`
+    );
+    const targetSquareRect = targetSquare.getBoundingClientRect();
+
+    // Add offset to position the promotion box above the pawn
+    const offset = -50; // Adjust this value as needed
+
+    promotionUI.style.top = `${targetSquareRect.top + window.scrollY + offset}px`;
+    promotionUI.style.left = `${targetSquareRect.left + window.scrollX}px`;
+
+    document.body.appendChild(promotionUI);
+};
+
 
 const getPieceUnicode = (piece) => {
     const unicodePieces = {
@@ -126,9 +177,13 @@ socket.on("boardState", function(){
     renderBoard();
 });
 
-socket.on("move", function(move){
+socket.on("move", (move) => {
     chess.move(move);
     renderBoard();
+    moveSound.play();
+    if (chess.in_check()) {
+        checkSound.play();
+    }
 });
 
 socket.on("gameover",function(message){
