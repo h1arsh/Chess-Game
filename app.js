@@ -59,12 +59,12 @@ io.on("connection" , function(uniquesocket){
         {
             if(chess.turn() === 'w' && uniquesocket.id !== players.white)
             {
-                console.log("Not White's turn");
+                console.log("No, it's White's turn");
                 return ;
             }
             if(chess.turn() === 'b' && uniquesocket.id !== players.black)
             {
-                console.log("Not Black's turn");
+                console.log("No, it's Black's turn");
                 return ;
             }
 
@@ -75,6 +75,28 @@ io.on("connection" , function(uniquesocket){
                 currentPlayer = chess.turn();
                 io.emit("move", move);
                 io.emit("boardState" , chess.fen());
+
+                if(chess.isCheckmate())
+                {
+                    const winner = chess.turn() === 'w' ? 'Black' : 'White';
+                    io.emit("gameover",`Checkmate! ${winner} wins the game`);
+                }
+                else if(chess.isDraw())
+                {
+                    io.emit("gameover" , "Draw! the game is a draw");
+                }
+                else if(chess.isInsufficientMaterial())
+                {
+                    io.emit("gameover" , "Draw! The game is a draw due to insufficient material.");
+                }
+                else if(chess.isStalemate())
+                {
+                    io.emit("gameover", "Stalemate! The game is a draw.");
+                }
+                else if(chess.isThreefoldRepetition())
+                {
+                    io.emit("gameover","Draw! The game is a draw by threefold repetition.");
+                }
             }
             else
             {

@@ -131,4 +131,9 @@ socket.on("move", function(move){
     renderBoard();
 });
 
+socket.on("gameover",function(message){
+    alert(message);
+});
+
+
 renderBoard();
