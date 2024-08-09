@@ -13,6 +13,26 @@
             position: relative;
         }
 
+        /* Timer Styling */
+
+        .timer{
+            position: absolute;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            z-index: 10;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #black-timer{
+            top:-80px;
+        }
+
+        #white-timer{
+            bottom: -80px;
+        }
+
         .files-labels, .ranks-labels {
             display: flex;
             color: #ffffff;
@@ -65,7 +85,7 @@
         }
 
         .square.light {
-            background-color: #f3f3ed; /* Light square color similar to Chess.com */
+            background-color: #ededce; /* Light square color similar to Chess.com */
         }
 
         .square.dark {
@@ -73,17 +93,7 @@
         }
 
         .piece {
-            font-size: 40px; /* Slightly larger piece size */
             cursor: pointer;
-            filter: drop-shadow(0px 0px 5px rgba(0, 0, 0, 0.5));
-        }
-
-        .piece.white {
-            color: white;
-        }
-
-        .piece.black {
-            color: black;
         }
 
         .piece.draggable {
@@ -115,28 +125,40 @@
             display: flex;
             background: rgba(0, 0, 0, 0.8);
             border-radius: 8px;
-            padding: 10px;
+            padding: 5px;
             z-index: 10;
-            position: absolute; /* Change to absolute for correct positioning */
+            position: absolute;
+            transform: translate(-50%, -50%); /* Center the container on the pawn */
         }
 
         .promotion-button {
-            margin: 0 10px;
-            font-size: 30px;
+            margin: 0 5px;
+            width: 50px;
+            height: 50px;
             cursor: pointer;
             color: white;
             background: none;
             border: none;
-            padding: 5px;
+            padding: 0;
             transition: transform 0.2s;
         }
 
         .promotion-button:hover {
-            transform: scale(1.2);
+            transform: scale(1.1);
         }
 
         /* Responsive adjustments */
         @media (max-width: 640px) {
+
+            .timer {
+                font-size: 1.5rem; /* Smaller font size for medium screens */
+            }
+        
+            #black-timer, #white-timer {
+                top: -60px; /* Adjust top for smaller screens */
+                bottom: -60px; /* Adjust bottom for smaller screens */
+            }
+        
             .files-labels div, .ranks-labels div {
                 width: 25px; /* Adjust for smaller screens */
                 height: 25px;
@@ -160,9 +182,28 @@
                 left: -25px; /* Adjust label position for smaller screens */
             }
 
+            .promotion-container {
+                padding: 3px;
+            }
+        
+            .promotion-button {
+                font-size: 16px;
+                margin: 0 3px;
+            }
+
         }
 
         @media (max-width: 480px) {
+
+            .timer {
+                font-size: 1rem; /* Even smaller font size for very small screens */
+            }
+        
+            #black-timer, #white-timer {
+                top: -40px; /* Adjust top for very small screens */
+                bottom: -40px; /* Adjust bottom for very small screens */
+            }
+        
             .files-labels div, .ranks-labels div {
                 width: 20px; /* Further adjustment for very small screens */
                 height: 20px;
@@ -189,20 +230,18 @@
             .promotion-container {
                 display: flex;
                 background: rgba(0, 0, 0, 0.8);
-                border-radius: 8px;
-                padding: 10px;
+                padding: 2px;
                 z-index: 10;
                 position: absolute; /* Change to absolute for correct positioning */
             }
 
             .promotion-button {
-                margin: 0 10px;
-                font-size: 30px;
+                margin: 0 2px;
+                font-size: 14px;
                 cursor: pointer;
                 color: white;
                 background: none;
                 border: none;
-                padding: 5px;
                 transition: transform 0.2s;
             }
 
@@ -216,6 +255,8 @@
 <body>
     <div class="w-full h-screen flex items-center justify-center bg-zinc-900">
         <div class="chessboard-container">
+            <!-- Black Timer (at the top) -->
+        <div id="black-timer" class="timer">10:00</div>
             <div class="ranks-labels">
                 <div>8</div>
                 <div>7</div>
@@ -239,6 +280,8 @@
                 <div>G</div>
                 <div>H</div>
             </div>
+            <!-- White Timer (at the bottom) -->
+        <div id="white-timer" class="timer">10:00</div>
         </div>
     </div>
 

@@ -3,13 +3,22 @@ const socket = io();
 const chess = new Chess();
 const boardElement = document.querySelector(".chessboard");
 
-const moveSound = new Audio('/sounds/move-self.mp3');
+const illegal = new Audio('/sounds/illegal.mp3');
+const promote = new Audio('/sounds/promote.mp3');
+const moveSound_opponent = new Audio('/sounds/move-opponent.mp3');
+const castle = new Audio('/sounds/castle.mp3');
+const game_start = new Audio('/sounds/game-start.mp3');
+const game_end = new Audio('/sounds/game-end.mp3');
+const moveSound_self = new Audio('/sounds/move-self.mp3');
 const checkSound = new Audio('/sounds/move-check.mp3');
 const captureSound = new Audio('/sounds/capture.mp3');
 
 let draggedPiece = null;
 let sourceSquare = null;
 let playerRole = null;
+
+let white_time = 600;
+let black_time = 600;
 
 // Elements for promotion UI
 let promotionUI = null;
@@ -30,12 +39,12 @@ const renderBoard = () => {
 
             if(square)
             {
-                const pieceElement = document.createElement("div");
+                const pieceElement = document.createElement("img");
                 pieceElement.classList.add(
                     "piece",
                     square.color === "w" ? "white" : "black"
                 );
-                pieceElement.innerText = getPieceUnicode(square);
+                pieceElement.src = getPieceimage(square);
                 pieceElement.draggable = playerRole === square.color;
 
                 pieceElement.addEventListener("dragstart", (e) =>{
@@ -76,31 +85,74 @@ const renderBoard = () => {
         });
     });   
 
+    const whiteTimerElement = document.getElementById("white-timer");
+    const blackTimerElement = document.getElementById("black-timer");
+
     if(playerRole === 'b')
     {
         boardElement.classList.add("flipped");
+        whiteTimerElement.style.top = '-80px';
+        whiteTimerElement.style.bottom = 'auto';
+        blackTimerElement.style.bottom = '-80px';
+        blackTimerElement.style.top = 'auto';
     }
     else
     {
         boardElement.classList.remove("flipped");
+        whiteTimerElement.style.bottom = '-80px';
+        whiteTimerElement.style.top = 'auto';
+        blackTimerElement.style.top = '-80px';
+        blackTimerElement.style.bottom = 'auto';
     }
 };
 
 const handleMove = (source,target) => {
     
     const move = {
-        from : `${String.fromCharCode(97+source.col)}${8-source.row}`,
-        to : `${String.fromCharCode(97+target.col)}${8-target.row}`,
-        promotion : "q",
+        from : `${String.fromCharCode(97 + source.col)}${8 - source.row}`,
+        to : `${String.fromCharCode(97 + target.col)}${8 - target.row}`,
+        promotion : null,
     };
+
     // Check for pawn promotion
-    if (chess.get(move.from).type === 'p' && (move.to[1] === '1' || move.to[1] === '8')) {
+    if (chess.get(move.from).type === 'p' && (move.to[1] === '1' || move.to[1] === '8')) 
+    {
         showPromotionUI(move, (promotion) => {
             move.promotion = promotion;
+            promote.play(); // Play promotion sound
             socket.emit("move", move);
         });
-    } else {
-        socket.emit("move", move);
+    } 
+    else 
+    {
+        const legalMove = chess.move(move);
+
+        if(legalMove)
+        {
+            if(legalMove.flags.includes('c'))
+            {
+                captureSound.play();
+            }
+            else if(legalMove.flags.includes('k') || legalMove.flags.includes('q'))
+            {
+                castle.play();
+            }
+            else
+            {
+                moveSound_self.play();
+            }
+
+            if(chess.in_check())
+            {
+                checkSound.play();
+            }
+
+            socket.emit("move",move);
+        }
+        else
+        {
+            illegal.play();
+        }
     }
 };
 
@@ -113,9 +165,9 @@ const showPromotionUI = (move, callback) => {
     const pieces = ["q", "r", "b", "n"]; // queen, rook, bishop, knight
 
     pieces.forEach(piece => {
-        const button = document.createElement("button");
+        const button = document.createElement("img");
         button.classList.add("promotion-button");
-        button.innerText = getPieceUnicode({ type: piece, color: chess.turn() });
+        button.src = getPieceimage({ type: piece, color: chess.turn() });
 
         button.addEventListener("click", () => {
             promotionUI.remove();
@@ -131,39 +183,60 @@ const showPromotionUI = (move, callback) => {
     );
     const targetSquareRect = targetSquare.getBoundingClientRect();
 
-    // Add offset to position the promotion box above the pawn
-    const offset = -50; // Adjust this value as needed
-
-    promotionUI.style.top = `${targetSquareRect.top + window.scrollY + offset}px`;
-    promotionUI.style.left = `${targetSquareRect.left + window.scrollX}px`;
+    promotionUI.style.top = `${targetSquareRect.top + window.scrollY + targetSquareRect.height/2  -70}px`;
+    promotionUI.style.left = `${targetSquareRect.left + window.scrollX + targetSquareRect.width/2}px`;
 
     document.body.appendChild(promotionUI);
 };
 
 
-const getPieceUnicode = (piece) => {
-    const unicodePieces = {
-        k: "♔",
-        q: "♕",
-        r: "♖",
-        b: "♗",
-        n: "♘",
-        p: "♙",
-        K: "♚",
-        Q: "♛",
-        R: "♜",
-        B: "♝",
-        N: "♞",
-        P: "♟︎",
+const getPieceimage = (piece) => {
+    const imagePieces = {
+        k: "/images/bk.png",
+        q: "/images/bq.png",
+        r: "/images/br.png",
+        b: "/images/bb.png",
+        n: "/images/bn.png",
+        p: "/images/bp.png",
+        K: "/images/wk.png",
+        Q: "/images/wq.png",
+        R: "/images/wr.png",
+        B: "/images/wb.png",
+        N: "/images/wn.png",
+        P: "/images/wp.png",
     };
 
-    return unicodePieces[piece.type] || "";
+    return imagePieces[piece.color === "w" ? piece.type.toUpperCase() : piece.type.toLowerCase()] || "";
 };
 
 
+// Timer Logic 
+
+const updateTimerUI = () =>{
+    const white_timer_element = document.getElementById('white-timer');
+    const black_timer_element = document.getElementById('black-timer');
+
+    white_timer_element.textContent = formatTime(white_time);
+    black_timer_element.textContent = formatTime(black_time);
+};
+
+const formatTime = (time) =>{
+    const minutes = Math.floor(time/60);
+    const seconds = time % 60;
+    return `${minutes}:${seconds<10 ? '0' : ''}${seconds}`;
+}
+
+socket.on("updatetimer",({white_time: newWhiteTime , black_time:newBlackTime}) =>{
+    white_time = newWhiteTime;
+    black_time = newBlackTime;
+    updateTimerUI();
+});
+
 socket.on("playerRole", function(role){
     playerRole = role;
+    game_start.play(); // Play game start sound when player role is assigned
     renderBoard();
+    updateTimerUI();
 });
 
 socket.on("spectatorRole" , function()
@@ -172,21 +245,29 @@ socket.on("spectatorRole" , function()
     renderBoard();
 });
 
-socket.on("boardState", function(){
-    chess.load(fen);
-    renderBoard();
+socket.on("boardState", function(fen){
+    if(fen)
+    {
+        chess.load(fen);
+        renderBoard();
+    }
+    else 
+    {
+        console.error("Received undefined FEN string");
+    }
 });
 
 socket.on("move", (move) => {
     chess.move(move);
     renderBoard();
-    moveSound.play();
+    moveSound_opponent.play(); // Play move sound for opponent
     if (chess.in_check()) {
         checkSound.play();
     }
 });
 
 socket.on("gameover",function(message){
+    game_end.play(); // Play game end sound
     alert(message);
 });
 
