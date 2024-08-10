@@ -107,7 +107,7 @@ io.on("connection" , function(uniquesocket){
             {
                 currentPlayer = chess.turn();
                 start_timer();
-                io.emit("move", move);
+                io.emit("move", result);
                 io.emit("boardState" , chess.fen());
 
                 if(chess.isCheckmate())
@@ -144,6 +144,15 @@ io.on("connection" , function(uniquesocket){
             console.log(err);
             uniquesocket.emit("Inavlid Move : ", move);
         }
+    });
+
+    uniquesocket.on("resetGame", () => {
+        chess.reset();
+        white_time = 600;
+        black_time = 600;
+        io.emit("resetBoard");
+        io.emit("boardState", chess.fen());
+        io.emit("updatetimer", { white_time, black_time });
     });
 
 });

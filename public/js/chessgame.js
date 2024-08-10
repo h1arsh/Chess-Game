@@ -209,6 +209,25 @@ const getPieceimage = (piece) => {
     return imagePieces[piece.color === "w" ? piece.type.toUpperCase() : piece.type.toLowerCase()] || "";
 };
 
+//Store History
+
+let moveCount = 0; // Track the move count to determine which column to place the move
+
+function updateMoveHistory(move) {
+    const moveHistoryTextarea = document.getElementById("moveHistoryTextarea");
+    
+    if (moveCount % 2 === 0) {
+        // Create a new line for White's move
+        moveHistoryTextarea.value += `${Math.floor(moveCount / 2) + 1}. ${move.san} `;
+    } else {
+        // Append Black's move to the same line
+        moveHistoryTextarea.value += `                    ${move.san}\n`;
+    }
+
+    moveHistoryTextarea.scrollTop = moveHistoryTextarea.scrollHeight; // Auto-scroll to the bottom
+    moveCount++;
+}
+
 
 // Timer Logic 
 
@@ -225,6 +244,18 @@ const formatTime = (time) =>{
     const seconds = time % 60;
     return `${minutes}:${seconds<10 ? '0' : ''}${seconds}`;
 }
+
+
+socket.on("resetBoard", () => {
+    chess.reset();
+    renderBoard();
+    const moveHistory = document.getElementById("moveHistory");
+    moveHistory.innerHTML = ""; // Clear the move history
+    moveCount = 0;
+    white_time = 600;
+    black_time = 600;
+    updateTimerUI();
+});
 
 socket.on("updatetimer",({white_time: newWhiteTime , black_time:newBlackTime}) =>{
     white_time = newWhiteTime;
@@ -259,7 +290,8 @@ socket.on("boardState", function(fen){
 
 socket.on("move", (move) => {
     chess.move(move);
-    renderBoard();
+    renderBoard(); 
+    updateMoveHistory(move) // store move history
     moveSound_opponent.play(); // Play move sound for opponent
     if (chess.in_check()) {
         checkSound.play();
@@ -269,6 +301,9 @@ socket.on("move", (move) => {
 socket.on("gameover",function(message){
     game_end.play(); // Play game end sound
     alert(message);
+    setTimeout(() => {
+        socket.emit("resetGame");
+    }, 2000);
 });
 
 
