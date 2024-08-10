@@ -235,8 +235,15 @@ const updateTimerUI = () =>{
     const white_timer_element = document.getElementById('white-timer');
     const black_timer_element = document.getElementById('black-timer');
 
-    white_timer_element.textContent = formatTime(white_time);
-    black_timer_element.textContent = formatTime(black_time);
+    if (playerRole === 'b') {
+        // If the player is black, swap the timer display
+        white_timer_element.textContent = formatTime(black_time);
+        black_timer_element.textContent = formatTime(white_time);
+    } else {
+        // Default behavior for white player
+        white_timer_element.textContent = formatTime(white_time);
+        black_timer_element.textContent = formatTime(black_time);
+    }
 };
 
 const formatTime = (time) =>{
@@ -249,8 +256,8 @@ const formatTime = (time) =>{
 socket.on("resetBoard", () => {
     chess.reset();
     renderBoard();
-    const moveHistory = document.getElementById("moveHistory");
-    moveHistory.innerHTML = ""; // Clear the move history
+    const moveHistoryTextarea = document.getElementById("moveHistoryTextarea");
+    moveHistoryTextarea.value = ""; // Clear the move history
     moveCount = 0;
     white_time = 600;
     black_time = 600;
@@ -258,8 +265,15 @@ socket.on("resetBoard", () => {
 });
 
 socket.on("updatetimer",({white_time: newWhiteTime , black_time:newBlackTime}) =>{
-    white_time = newWhiteTime;
-    black_time = newBlackTime;
+    if (playerRole === 'b') {
+        // If the player is black, swap the timer values
+        white_time = newBlackTime;
+        black_time = newWhiteTime;
+    } else {
+        // Default behavior for white player
+        white_time = newWhiteTime;
+        black_time = newBlackTime;
+    }
     updateTimerUI();
 });
 
@@ -274,6 +288,7 @@ socket.on("spectatorRole" , function()
 {
     playerRole = null;
     renderBoard();
+    updateTimerUI(); // Ensure spectators see correct timer values
 });
 
 socket.on("boardState", function(fen){

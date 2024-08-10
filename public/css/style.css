@@ -19,29 +19,42 @@
     height: 400px; /* Fixed height */
     font-family: 'Roboto', sans-serif; /* Professional font */
     resize: none; /* Disable resizing */
-    overflow-y: scroll; /* Make it scrollable */
+    overflow-y: auto; /* Make it scrollable */
+    font-size: 16px; /* Increase font size for readability */
+    line-height: 1.5; /* Increase line height for better readability */
+    outline: none; /* Remove outline */
+    transition: box-shadow 0.3s ease; /* Smooth transition for focus effect */
 }
 
+/* Focus effect for the history box */
+#moveHistoryTextarea:focus {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Slightly more prominent shadow */
+    border-color: #4b5563; /* Slightly lighter border color on focus */
+}
 
 /* Timer Styling */
-
-.timer{
-    position: absolute;
+.timer {
     color: white;
     font-size: 2rem;
     font-weight: bold;
     z-index: 10;
-    left: 50%;
-    margin-bottom: 10px;
-    transform: translateX(-50%);
+    position: absolute;
 }
 
-#black-timer{
-    top:-80px;
+#black-timer {
+    top: -80px; /* Position above the chessboard */
+    right: 0; /* Align to the right edge of the chessboard */
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 5px;
 }
 
-#white-timer{
-    bottom: -80px;
+#white-timer {
+    bottom: -80px; /* Position below the chessboard */
+    left: 0; /* Align to the left edge of the chessboard */
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 5px;
 }
 
 .files-labels, .ranks-labels {
@@ -160,20 +173,19 @@
 
 /* Responsive adjustments */
 @media (max-width: 640px) {
-
     #moveHistoryTextarea {
         height: 250px; /* Reduce height on smaller screens */
-        max-width: 10px; /* Reduce width on smaller screens */
+        max-width: 200px; /* Reduce width on smaller screens */
         padding: 8px; /* Reduce padding on smaller screens */
     }
 
     .timer {
-        font-size: 1.5rem; /* Smaller font size for medium screens */
+        font-size: 1.25rem; /* Smaller font size for medium screens */
     }
 
     #black-timer, #white-timer {
-        top: -60px; /* Adjust top for smaller screens */
-        bottom: -60px; /* Adjust bottom for smaller screens */
+        top: -40px; /* Adjust top for smaller screens */
+        bottom: -40px; /* Adjust bottom for smaller screens */
     }
 
     .files-labels div, .ranks-labels div {
@@ -208,25 +220,23 @@
         width: 30px;
         margin: 0 3px;
     }
-
 }
 
 @media (max-width: 480px) {
-
     #moveHistoryTextarea {
         height: 200px; /* Further reduce height on very small screens */
-        max-width: 120px; /* Further reduce width on very small screens */
+        max-width: 100px; /* Further reduce width on very small screens */
         padding: 6px; /* Further reduce padding on very small screens */
         font-size: 12px; /* Smaller font size for very small screens */
     }
 
     .timer {
-        font-size: 1rem; /* Even smaller font size for very small screens */
+        font-size: 0.75rem; /* Even smaller font size for very small screens */
     }
 
     #black-timer, #white-timer {
-        top: -40px; /* Adjust top for very small screens */
-        bottom: -40px; /* Adjust bottom for very small screens */
+        top: -30px; /* Adjust top for very small screens */
+        bottom: -30px; /* Adjust bottom for very small screens */
     }
 
     .files-labels div, .ranks-labels div {

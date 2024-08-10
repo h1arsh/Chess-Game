@@ -21,7 +21,12 @@ let intervalID;
 app.set("view engine","ejs");
 app.use(express.static(path.join(__dirname,"public")));
 
-app.get("/", (req,res) => {
+// Route to serve the start_game page
+app.get('/', (req, res) => {
+    res.render('start_game');
+});
+
+app.get("/index", (req,res) => {
     res.render("index" , {title : "Chess Game"});
 });
 
