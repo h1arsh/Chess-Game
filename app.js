@@ -3,6 +3,7 @@ const socket = require("socket.io");
 const http = require("http");
 const { Chess } = require("chess.js");
 const path = require("path");
+const gameRoutes = require("./gameRoutes");
 
 const app = express();
 
@@ -20,6 +21,7 @@ let intervalID;
 
 app.set("view engine","ejs");
 app.use(express.static(path.join(__dirname,"public")));
+app.use(express.urlencoded({ extended: true }));
 
 // Route to serve the start_game page
 app.get('/', (req, res) => {
@@ -29,6 +31,9 @@ app.get('/', (req, res) => {
 app.get("/index", (req,res) => {
     res.render("index" , {title : "Chess Game"});
 });
+
+// Use the game routes
+app.use("/", gameRoutes);
 
 const start_timer = () => {
     clearInterval(intervalID);
