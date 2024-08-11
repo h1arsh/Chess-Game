@@ -317,6 +317,7 @@ socket.on("gameover",function(message){
     game_end.play(); // Play game end sound
     alert(message);
     setTimeout(() => {
+        window.location.href = "/";
         socket.emit("resetGame");
     }, 2000);
 });
