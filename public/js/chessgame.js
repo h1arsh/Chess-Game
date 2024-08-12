@@ -146,47 +146,46 @@ const handleMove = (source,target) => {
         promotion : null,
     };
 
-    // Check if the move is legal before proceeding with pawn promotion or any other actions
-    const legalMove = chess.move(move);
+    // Check for pawn promotion
+    if (chess.get(move.from).type === 'p' && ((chess.turn() === 'b' && move.to[1] === '1') || (chess.turn() === 'w' &&move.to[1] === '8'))) 
+    {
+        showPromotionUI(move, (promotion) => {
+            move.promotion = promotion;
+            promote.play(); // Play promotion sound
+            socket.emit("move", move);
+        });
+    } 
+    else 
+    {
+        const legalMove = chess.move(move);
 
-    if (legalMove) {
-        // If the move is legal, check for pawn promotion
-        if (legalMove.piece === 'p' && (move.to[1] === '1' || move.to[1] === '8')) {
-            // Undo the move to allow for proper promotion handling
-            chess.undo();
-            showPromotionUI(move, (promotion) => {
-                move.promotion = promotion;
-                promote.play(); // Play promotion sound
-                chess.move(move); // Reapply the move with promotion
-                socket.emit("move", move);
-                renderBoard();
-            });
-        } else {
-            // If the move doesn't involve promotion, finalize the move
-            finalizeMove(legalMove);
+        if(legalMove)
+        {
+            if(legalMove.flags.includes('c'))
+            {
+                captureSound.play();
+            }
+            else if(legalMove.flags.includes('k') || legalMove.flags.includes('q'))
+            {
+                castle.play();
+            }
+            else
+            {
+                moveSound_self.play();
+            }
+
+            if(chess.in_check())
+            {
+                checkSound.play();
+            }
+
+            socket.emit("move",move);
         }
-    } else {
-        illegal.play();
+        else
+        {
+            illegal.play();
+        }
     }
-};
-
-const finalizeMove = (move) => {
-    // Determine which sound to play based on the move type
-    if (move.flags.includes('c')) {
-        captureSound.play();
-    } else if (move.flags.includes('k') || move.flags.includes('q')) {
-        castle.play();
-    } else {
-        moveSound_self.play();
-    }
-
-    // Check if the move results in a check
-    if (chess.in_check()) {
-        checkSound.play();
-    }
-
-    socket.emit("move", move);
-    renderBoard();
 };
 
 // Pawn promotion Logic
