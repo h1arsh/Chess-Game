@@ -61,6 +61,21 @@ const renderBoard = () => {
                     sourceSquare = null;
                 });
 
+                // Touch events for mobile dragging
+                pieceElement.addEventListener("touchstart", (e) => {
+                    if (pieceElement.draggable) {
+                        draggedPiece = pieceElement;
+                        sourceSquare = { row: rowindex, col: squareindex };
+                        e.preventDefault();
+                    }
+                });
+
+                pieceElement.addEventListener("touchend", (e) => {
+                    draggedPiece = null;
+                    sourceSquare = null;
+                    e.preventDefault();
+                });
+
                 squareElement.appendChild(pieceElement);
             }
 
@@ -81,6 +96,23 @@ const renderBoard = () => {
                     handleMove(sourceSquare,targetSource);
                 }
             });
+
+            // Touch events for mobile dragging
+            squareElement.addEventListener("touchmove", (e) => {
+                if (draggedPiece) {
+                    const touch = e.touches[0];
+                    const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                    if (targetElement && targetElement.classList.contains("square")) {
+                        const targetSource = {
+                            row: parseInt(targetElement.dataset.row),
+                            col: parseInt(targetElement.dataset.col),
+                        };
+                        handleMove(sourceSquare, targetSource);
+                    }
+                }
+                e.preventDefault();
+            });
+            
             boardElement.appendChild(squareElement);
         });
     });   
