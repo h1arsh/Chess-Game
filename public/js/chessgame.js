@@ -319,7 +319,7 @@ socket.on("gameover",function(message){
     setTimeout(() => {
         window.location.href = "/";
         socket.emit("resetGame");
-    }, 2000);
+    }, 5000);
 });
 
 
