@@ -10,163 +10,154 @@ const app = express();
 const server = http.createServer(app);
 const io = socket(server);
 
-const chess = new Chess();
+let games = {};
+let gameCounter = 0;
 
-let players = {};
-let currentPlayer = "w";
+const createNewGame = () => {
+    const gameId = `game_${gameCounter++}`;
+    games[gameId] = {
+        chess: new Chess(),
+        players: {},
+        currentPlayer: "w",
+        white_time: 600,
+        black_time: 600,
+        intervalID: null
+    };
+    return gameId;
+};
 
-let white_time = 600;
-let black_time = 600;
-let intervalID;
-
-app.set("view engine","ejs");
-app.use(express.static(path.join(__dirname,"public")));
+app.set("view engine", "ejs");
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.urlencoded({ extended: true }));
 
-// Route to serve the start_game page
 app.get('/', (req, res) => {
     res.render('start_game');
 });
 
-app.get("/index", (req,res) => {
-    res.render("index" , {title : "Chess Game"});
+app.get("/index", (req, res) => {
+    res.render("index", { title: "Chess Game" });
 });
 
-// Use the game routes
 app.use("/", gameRoutes);
 
-const start_timer = () => {
-    clearInterval(intervalID);
+const start_timer = (gameId) => {
+    const game = games[gameId];
+    clearInterval(game.intervalID);
 
-    intervalID = setInterval (() => {
-        if(currentPlayer === 'w')
-        {
-            white_time--;
-            io.emit("updatetimer",{white_time,black_time});
-        }
-        else if(currentPlayer === 'b')
-        {
-            black_time--;
-            io.emit("updatetimer",{white_time,black_time});
+    game.intervalID = setInterval(() => {
+        if (game.currentPlayer === 'w') {
+            game.white_time--;
+            io.to(gameId).emit("updatetimer", { white_time: game.white_time, black_time: game.black_time });
+        } else if (game.currentPlayer === 'b') {
+            game.black_time--;
+            io.to(gameId).emit("updatetimer", { white_time: game.white_time, black_time: game.black_time });
         }
 
-        if(white_time <= 0)
-        {
-            clearInterval(intervalID);
-            io.emit("gameover","Time is up! Black Wins by Timeout");
+        if (game.white_time <= 0) {
+            clearInterval(game.intervalID);
+            io.to(gameId).emit("gameover", "Time is up! Black Wins by Timeout");
+        } else if (game.black_time <= 0) {
+            clearInterval(game.intervalID);
+            io.to(gameId).emit("gameover", "Time is up! White Wins by Timeout");
         }
-        else if(black_time <= 0)
-        {
-            clearInterval(intervalID);
-            io.emit("gameover","Time is up! White Wins by Timeout");
-        }
-    },1000);
+    }, 1000);
 };
 
-
-io.on("connection" , function(uniquesocket){
+io.on("connection", function (uniquesocket) {
     console.log("connected");
 
-    // uniquesocket.on("disconnect", function(){
-    //     console.log("disconnected");
-    // });
+    let assignedGameId = null;
 
-    if(!players.white)
-    {
-        players.white = uniquesocket.id;
+    // Assign player to a game
+    for (const gameId in games) {
+        const game = games[gameId];
+        if (!game.players.white) {
+            game.players.white = uniquesocket.id;
+            uniquesocket.emit("playerRole", "w");
+            assignedGameId = gameId;
+            break;
+        } else if (!game.players.black) {
+            game.players.black = uniquesocket.id;
+            uniquesocket.emit("playerRole", "b");
+            assignedGameId = gameId;
+            break;
+        }
+    }
+
+    // If no game found, create a new game
+    if (!assignedGameId) {
+        assignedGameId = createNewGame();
+        games[assignedGameId].players.white = uniquesocket.id;
         uniquesocket.emit("playerRole", "w");
     }
-    else if(!players.black)
-    {
-        players.black = uniquesocket.id;
-        uniquesocket.emit("playerRole","b");
-    }
-    else
-    {
-        uniquesocket.emit("spectator");
-    }
 
-    uniquesocket.on("disconnect", function(){
-        if(uniquesocket.id === players.white)
-        {
-            delete players.white;
-        }
-        else if(uniquesocket.id === players.black)
-        {
-            delete players.black;
+    uniquesocket.join(assignedGameId);
+    uniquesocket.gameId = assignedGameId;
+
+    uniquesocket.on("disconnect", function () {
+        const game = games[uniquesocket.gameId];
+        if (uniquesocket.id === game.players.white) {
+            delete game.players.white;
+        } else if (uniquesocket.id === game.players.black) {
+            delete game.players.black;
         }
     });
 
     uniquesocket.on("move", (move) => {
-        try
-        {
-            if(chess.turn() === 'w' && uniquesocket.id !== players.white)
-            {
+        const game = games[uniquesocket.gameId];
+        try {
+            if (game.chess.turn() === 'w' && uniquesocket.id !== game.players.white) {
                 console.log("No, it's White's turn");
-                return ;
+                return;
             }
-            if(chess.turn() === 'b' && uniquesocket.id !== players.black)
-            {
+            if (game.chess.turn() === 'b' && uniquesocket.id !== game.players.black) {
                 console.log("No, it's Black's turn");
-                return ;
+                return;
             }
 
-            const result = chess.move(move);
+            const result = game.chess.move(move);
 
-            if(result)
-            {
-                currentPlayer = chess.turn();
-                start_timer();
-                io.emit("move", result);
-                io.emit("boardState" , chess.fen());
+            if (result) {
+                game.currentPlayer = game.chess.turn();
+                start_timer(uniquesocket.gameId);
+                io.to(uniquesocket.gameId).emit("move", result);
+                io.to(uniquesocket.gameId).emit("boardState", game.chess.fen());
 
-                if(chess.isCheckmate())
-                {
-                    const winner = chess.turn() === 'w' ? 'Black' : 'White';
-                    io.emit("gameover",`Checkmate! ${winner} wins the game`);
+                if (game.chess.isCheckmate()) {
+                    const winner = game.chess.turn() === 'w' ? 'Black' : 'White';
+                    io.to(uniquesocket.gameId).emit("gameover", `Checkmate! ${winner} wins the game`);
+                } else if (game.chess.isDraw()) {
+                    io.to(uniquesocket.gameId).emit("gameover", "Draw! the game is a draw");
+                } else if (game.chess.isInsufficientMaterial()) {
+                    io.to(uniquesocket.gameId).emit("gameover", "Draw! The game is a draw due to insufficient material.");
+                } else if (game.chess.isStalemate()) {
+                    io.to(uniquesocket.gameId).emit("gameover", "Stalemate! The game is a draw.");
+                } else if (game.chess.isThreefoldRepetition()) {
+                    io.to(uniquesocket.gameId).emit("gameover", "Draw! The game is a draw by threefold repetition.");
                 }
-                else if(chess.isDraw())
-                {
-                    io.emit("gameover" , "Draw! the game is a draw");
-                }
-                else if(chess.isInsufficientMaterial())
-                {
-                    io.emit("gameover" , "Draw! The game is a draw due to insufficient material.");
-                }
-                else if(chess.isStalemate())
-                {
-                    io.emit("gameover", "Stalemate! The game is a draw.");
-                }
-                else if(chess.isThreefoldRepetition())
-                {
-                    io.emit("gameover","Draw! The game is a draw by threefold repetition.");
-                }
-            }
-            else
-            {
-                console.log("Invalid move : ",move);
-                uniquesocket.emit("invalidMove",move);
+            } else {
+                console.log("Invalid move : ", move);
+                uniquesocket.emit("invalidMove", move);
             }
 
-        }
-        catch(err)
-        {
+        } catch (err) {
             console.log(err);
             uniquesocket.emit("Inavlid Move : ", move);
         }
     });
 
     uniquesocket.on("resetGame", () => {
-        chess.reset();
-        white_time = 600;
-        black_time = 600;
-        io.emit("resetBoard");
-        io.emit("boardState", chess.fen());
-        io.emit("updatetimer", { white_time, black_time });
+        const game = games[uniquesocket.gameId];
+        game.chess.reset();
+        game.white_time = 600;
+        game.black_time = 600;
+        io.to(uniquesocket.gameId).emit("resetBoard");
+        io.to(uniquesocket.gameId).emit("boardState", game.chess.fen());
+        io.to(uniquesocket.gameId).emit("updatetimer", { white_time: game.white_time, black_time: game.black_time });
     });
 
 });
 
-server.listen(3000, function(){
+server.listen(3000, function () {
     console.log("Server is Listening on port no 3000");
 });
