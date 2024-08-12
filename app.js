@@ -12,6 +12,7 @@ const io = socket(server);
 
 let games = {};
 let gameCounter = 0;
+let waitingPlayer = null;
 
 const createNewGame = () => {
     const gameId = `game_${gameCounter++}`;
@@ -63,32 +64,34 @@ const start_timer = (gameId) => {
     }, 1000);
 };
 
+// Clean up inactive games
+const cleanUpInactiveGames = () => {
+    for (const gameId in games) {
+        const game = games[gameId];
+        if (!game.players.white && !game.players.black) {
+            clearInterval(game.intervalID);
+            delete games[gameId];
+        }
+    }
+};
+
+setInterval(cleanUpInactiveGames, 60000); // Clean up every minute
+
 io.on("connection", function (uniquesocket) {
     console.log("connected");
 
     let assignedGameId = null;
 
-    // Assign player to a game
-    for (const gameId in games) {
-        const game = games[gameId];
-        if (!game.players.white) {
-            game.players.white = uniquesocket.id;
-            uniquesocket.emit("playerRole", "w");
-            assignedGameId = gameId;
-            break;
-        } else if (!game.players.black) {
-            game.players.black = uniquesocket.id;
-            uniquesocket.emit("playerRole", "b");
-            assignedGameId = gameId;
-            break;
-        }
-    }
-
-    // If no game found, create a new game
-    if (!assignedGameId) {
+    if (waitingPlayer) {
+        assignedGameId = waitingPlayer.gameId;
+        games[assignedGameId].players.black = uniquesocket.id;
+        uniquesocket.emit("playerRole", "b");
+        waitingPlayer = null;
+    } else {
         assignedGameId = createNewGame();
         games[assignedGameId].players.white = uniquesocket.id;
         uniquesocket.emit("playerRole", "w");
+        waitingPlayer = { gameId: assignedGameId, socketId: uniquesocket.id };
     }
 
     uniquesocket.join(assignedGameId);
@@ -100,6 +103,9 @@ io.on("connection", function (uniquesocket) {
             delete game.players.white;
         } else if (uniquesocket.id === game.players.black) {
             delete game.players.black;
+        }
+        if (waitingPlayer && waitingPlayer.socketId === uniquesocket.id) {
+            waitingPlayer = null;
         }
     });
 
@@ -142,7 +148,7 @@ io.on("connection", function (uniquesocket) {
 
         } catch (err) {
             console.log(err);
-            uniquesocket.emit("Inavlid Move : ", move);
+            uniquesocket.emit("Invalid Move : ", move);
         }
     });
 
