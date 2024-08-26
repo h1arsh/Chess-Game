@@ -152,6 +152,14 @@ io.on("connection", function (uniquesocket) {
         }
     });
 
+    uniquesocket.on("resignGame", () => {
+        uniquesocket.emit("gameover", "You resigned. The AI wins.");
+    });
+
+    uniquesocket.on("disconnect", () => {
+        console.log("Player disconnected");
+    });
+
     uniquesocket.on("resetGame", () => {
         const game = games[uniquesocket.gameId];
         game.chess.reset();

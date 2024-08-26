@@ -22,6 +22,40 @@ let black_time = 600;
 
 // Elements for promotion UI
 let promotionUI = null;
+let draggedSourceSquare = null; // To keep track of the source square during drag
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    const themeSelect = document.getElementById('theme');
+    
+    const savedTheme = localStorage.getItem('theme') || 'default';
+    setTheme(savedTheme);
+    themeSelect.value = savedTheme;
+
+    themeSelect.addEventListener('change', (event) => {
+        const selectedTheme = event.target.value;
+        setTheme(selectedTheme);
+    });
+    
+    document.getElementById('resignButton').addEventListener('click', resignGame);
+
+
+    game_start.play();
+    renderBoard();
+    updateTimerUI();
+});
+
+function resignGame() {
+    socket.emit('resignGame');
+}
+
+function setTheme(theme) {
+    document.body.classList.remove('default-theme', 'dark-theme', 'light-theme', 'classic-theme', 'wooden-theme', 'futuristic-theme');
+    if (theme !== 'default') {
+        document.body.classList.add(`${theme}-theme`);
+    }
+    localStorage.setItem('theme', theme);
+}
 
 const renderBoard = () => {
     const board = chess.board();
@@ -48,73 +82,40 @@ const renderBoard = () => {
                 pieceElement.draggable = playerRole === square.color;
 
                 pieceElement.addEventListener("dragstart", (e) =>{
-                    if(pieceElement.draggable)
-                    {
-                        draggedPiece = pieceElement;
-                        sourceSquare = { row : rowindex , col : squareindex};
-                        e.dataTransfer.setData("text/plain", "");
-                    }
+                    draggedSourceSquare = `${String.fromCharCode(97 + squareindex)}${8 - rowindex}`;
+                    e.dataTransfer.setData("text/plain", draggedSourceSquare);
+
+                    // Highlight possible moves for the dragged piece
+                    highlightPossibleMoves(draggedSourceSquare);
                 });
 
                 pieceElement.addEventListener("dragend", (e) => {
-                    draggedPiece = null;
-                    sourceSquare = null;
-                });
-
-                // Touch events for mobile dragging
-                pieceElement.addEventListener("touchstart", (e) => {
-                    if (pieceElement.draggable) {
-                        draggedPiece = pieceElement;
-                        sourceSquare = { row: rowindex, col: squareindex };
-                        e.preventDefault();
-                    }
-                });
-
-                pieceElement.addEventListener("touchend", (e) => {
-                    draggedPiece = null;
-                    sourceSquare = null;
-                    e.preventDefault();
+                    removeHighlightFromAllSquares(); // Clear any highlights when dragging ends
+                    draggedSourceSquare = null;
                 });
 
                 squareElement.appendChild(pieceElement);
             }
 
-            squareElement.addEventListener("dragover", (e) => {
-                e.preventDefault();
-            });
+            // Event listeners for drag and drop
+            squareElement.addEventListener("dragover", handleDragOver);
+            squareElement.addEventListener("drop", (e) => handleDrop(e, rowindex, squareindex));
 
-            squareElement.addEventListener("drop", (e) => {
-                e.preventDefault();
-                if(draggedPiece)
-                {
-                    const targetSource = {
-                        row : parseInt(squareElement.dataset.row),
-                        col : parseInt(squareElement.dataset.col),
-
-                    };
-
-                    handleMove(sourceSquare,targetSource);
+            // Ensure correct piece drag-drop handling based on role
+            squareElement.addEventListener("click", () => {
+                if (playerRole) {
+                    handleSquareClick(rowindex, squareindex);
                 }
             });
-
-            // Touch events for mobile dragging
-            squareElement.addEventListener("touchmove", (e) => {
-                if (draggedPiece) {
-                    const touch = e.touches[0];
-                    const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-                    if (targetElement && targetElement.classList.contains("square")) {
-                        const targetSource = {
-                            row: parseInt(targetElement.dataset.row),
-                            col: parseInt(targetElement.dataset.col),
-                        };
-                        handleMove(sourceSquare, targetSource);
-                    }
+            squareElement.addEventListener("touchend", () => {
+                if (playerRole) {
+                    handleSquareClick(rowindex, squareindex);
                 }
-                e.preventDefault();
             });
             
             boardElement.appendChild(squareElement);
         });
+
     });   
 
     const whiteTimerElement = document.getElementById("white-timer");
@@ -123,20 +124,118 @@ const renderBoard = () => {
     if(playerRole === 'b')
     {
         boardElement.classList.add("flipped");
-        whiteTimerElement.style.top = '-80px';
+        whiteTimerElement.style.top = '-100px';
         whiteTimerElement.style.bottom = 'auto';
-        blackTimerElement.style.bottom = '-80px';
+        blackTimerElement.style.bottom = '-100px';
         blackTimerElement.style.top = 'auto';
     }
     else
     {
         boardElement.classList.remove("flipped");
-        whiteTimerElement.style.bottom = '-80px';
+        whiteTimerElement.style.bottom = '-100px';
         whiteTimerElement.style.top = 'auto';
-        blackTimerElement.style.top = '-80px';
+        blackTimerElement.style.top = '-100px';
         blackTimerElement.style.bottom = 'auto';
     }
+
+    function handleSquareClick(row, col) {
+        const squareId = `${String.fromCharCode(97 + col)}${8 - row}`;
+        const selectedPiece = chess.get(squareId);
+    
+        // Check if the player is allowed to select the piece
+        if (selectedPiece && selectedPiece.color === playerRole) {
+            // If a piece is selected, highlight possible moves
+            selectedPieceSquare = squareId;
+            highlightPossibleMoves(selectedPieceSquare);
+        } else if (selectedPieceSquare) {
+            // If a piece was previously selected, try to move to the clicked square
+            const move = {
+                from: selectedPieceSquare,
+                to: squareId,
+                promotion: null
+            };
+    
+            // Check for pawn promotion
+            if (isPawnPromotion(move)) {
+                showPromotionUI(move, (promotion) => {
+                    move.promotion = promotion;
+                    promote.play();
+                    makeMove(move);
+                });
+            } else {
+                if (chess.move(move)) {
+                    makeMove(move);
+                } else {
+                    illegal.play();
+                }
+            }
+            selectedPieceSquare = null; // Deselect piece after move
+            removeHighlightFromAllSquares(); // Remove highlights after move
+        }
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+    }
+    
+    function handleDrop(e, rowIndex, colIndex) {
+        e.preventDefault();
+    
+        const targetSquare = `${String.fromCharCode(97 + colIndex)}${8 - rowIndex}`;
+        const move = {
+            from: draggedSourceSquare,
+            to: targetSquare,
+            promotion: null
+        };
+    
+        // Remove highlights after dropping the piece
+        removeHighlightFromAllSquares();
+    
+        if (isPawnPromotion(move)) {
+            showPromotionUI(move, (promotion) => {
+                move.promotion = promotion;
+                sounds.promote.play();
+                makeMove(move);
+            });
+        } else {
+            if (chess.move(move)) {
+                makeMove(move);
+            } else {
+                sounds.illegal.play();
+            }
+        }
+        removeHighlightFromAllSquares(); // Remove highlights after move
+        draggedSourceSquare = null; // Reset source square
+    }
+    
+    function handleDragEnd() {
+        removeHighlightFromAllSquares(); // Clear any highlights when dragging ends
+        draggedSourceSquare = null;
+    }
+    
 };
+
+function highlightPossibleMoves(squareId) {
+    removeHighlightFromAllSquares(); // Clear previous highlights
+    const moves = chess.moves({ square: squareId, verbose: true });
+
+    moves.forEach((move) => {
+        const targetSquare = document.querySelector(`.square[data-row="${8 - parseInt(move.to[1], 10)}"][data-col="${move.to.charCodeAt(0) - 97}"]`);
+        if (targetSquare) {
+            targetSquare.classList.add("highlight");
+        }
+    });
+}
+
+function removeHighlightFromAllSquares() {
+    document.querySelectorAll(".highlight").forEach((el) => el.classList.remove("highlight"));
+}
+
+function makeMove(move) {
+    socket.emit('move', move,);
+    playSoundForMove(move);
+    updateMoveHistory(move);    
+}
 
 const handleMove = (source,target) => {
     
@@ -189,6 +288,11 @@ const handleMove = (source,target) => {
 };
 
 // Pawn promotion Logic
+
+function isPawnPromotion(move) {
+    const piece = chess.get(move.from);
+    return piece.type === 'p' && ((chess.turn() === 'b' && move.to[1] === '1') || (chess.turn() === 'w' && move.to[1] === '8'));
+}
 
 const showPromotionUI = (move, callback) => {
     promotionUI = document.createElement("div");
