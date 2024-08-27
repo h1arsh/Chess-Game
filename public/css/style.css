@@ -565,7 +565,7 @@ body.futuristic-theme .ranks-labels div {
     .promotion-button {
         height: 35px; /* Increase button height */
         width: 25px;  /* Increase button width */
-        margin: 0 4px; /* Increase margin between buttons */
+        margin: 0 2px; /* Increase margin between buttons */
     }
 }
 
