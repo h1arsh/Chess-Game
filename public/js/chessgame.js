@@ -46,7 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function resignGame() {
-    socket.emit('resignGame');
+    if (confirm("Are you sure you want to resign?")) {
+        socket.emit("resignGame");
+    }
 }
 
 function setTheme(theme) {
@@ -154,21 +156,7 @@ const renderBoard = () => {
                 to: squareId,
                 promotion: null
             };
-    
-            // Check for pawn promotion
-            if (isPawnPromotion(move)) {
-                showPromotionUI(move, (promotion) => {
-                    move.promotion = promotion;
-                    promote.play();
-                    makeMove(move);
-                });
-            } else {
-                if (chess.move(move)) {
-                    makeMove(move);
-                } else {
-                    illegal.play();
-                }
-            }
+            handlePromotionAndMove(move);
             selectedPieceSquare = null; // Deselect piece after move
             removeHighlightFromAllSquares(); // Remove highlights after move
         }
@@ -187,23 +175,8 @@ const renderBoard = () => {
             to: targetSquare,
             promotion: null
         };
-    
-        // Remove highlights after dropping the piece
-        removeHighlightFromAllSquares();
-    
-        if (isPawnPromotion(move)) {
-            showPromotionUI(move, (promotion) => {
-                move.promotion = promotion;
-                sounds.promote.play();
-                makeMove(move);
-            });
-        } else {
-            if (chess.move(move)) {
-                makeMove(move);
-            } else {
-                sounds.illegal.play();
-            }
-        }
+        handlePromotionAndMove(move);
+        
         removeHighlightFromAllSquares(); // Remove highlights after move
         draggedSourceSquare = null; // Reset source square
     }
@@ -233,8 +206,51 @@ function removeHighlightFromAllSquares() {
 
 function makeMove(move) {
     socket.emit('move', move,);
-    playSoundForMove(move);
     updateMoveHistory(move);    
+}
+
+function handlePromotionAndMove(move)
+{
+    // Check if the move is legal first
+    const isLegal = chess.move({ from: move.from, to: move.to, promotion: 'q' }, { sloppy: true });
+
+    if (!isLegal) {
+        // Play illegal move sound and return if the move is not legal
+        illegal.play();
+        return;
+    }
+
+    // Revert the move to handle promotion properly
+    chess.undo();
+
+    // Check for pawn promotion
+    if (chess.get(move.from).type === 'p' && ((chess.turn() === 'b' && move.to[1] === '1') || (chess.turn() === 'w' && move.to[1] === '8'))) {
+        showPromotionUI(move, (promotion) => {
+            move.promotion = promotion;
+            chess.move(move); // Make the promotion move on the board
+            promote.play(); // Play promotion sound
+            socket.emit("move", move);
+        });
+    } else {
+        const legalMove = chess.move(move);
+        if (legalMove) {
+            if (legalMove.flags.includes('c')) {
+                captureSound.play();
+            } else if (legalMove.flags.includes('k') || legalMove.flags.includes('q')) {
+                castle.play();
+            } else {
+                moveSound_self.play();
+            }
+
+            if (chess.in_check()) {
+                checkSound.play();
+            }
+
+            socket.emit("move", move);
+        } else {
+            illegal.play();
+        }
+    }
 }
 
 const handleMove = (source,target) => {
@@ -245,54 +261,10 @@ const handleMove = (source,target) => {
         promotion : null,
     };
 
-    // Check for pawn promotion
-    if (chess.get(move.from).type === 'p' && ((chess.turn() === 'b' && move.to[1] === '1') || (chess.turn() === 'w' &&move.to[1] === '8'))) 
-    {
-        showPromotionUI(move, (promotion) => {
-            move.promotion = promotion;
-            promote.play(); // Play promotion sound
-            socket.emit("move", move);
-        });
-    } 
-    else 
-    {
-        const legalMove = chess.move(move);
-
-        if(legalMove)
-        {
-            if(legalMove.flags.includes('c'))
-            {
-                captureSound.play();
-            }
-            else if(legalMove.flags.includes('k') || legalMove.flags.includes('q'))
-            {
-                castle.play();
-            }
-            else
-            {
-                moveSound_self.play();
-            }
-
-            if(chess.in_check())
-            {
-                checkSound.play();
-            }
-
-            socket.emit("move",move);
-        }
-        else
-        {
-            illegal.play();
-        }
-    }
+    handlePromotionAndMove(move);
 };
 
 // Pawn promotion Logic
-
-function isPawnPromotion(move) {
-    const piece = chess.get(move.from);
-    return piece.type === 'p' && ((chess.turn() === 'b' && move.to[1] === '1') || (chess.turn() === 'w' && move.to[1] === '8'));
-}
 
 const showPromotionUI = (move, callback) => {
     promotionUI = document.createElement("div");
@@ -455,7 +427,7 @@ socket.on("gameover",function(message){
     setTimeout(() => {
         window.location.href = "/";
         socket.emit("resetGame");
-    }, 5000);
+    }, 7000);
 });
 
 

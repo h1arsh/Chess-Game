@@ -99,13 +99,34 @@ io.on("connection", function (uniquesocket) {
 
     uniquesocket.on("disconnect", function () {
         const game = games[uniquesocket.gameId];
+        if (!game) return;
+
+        let winner = null;
+
+        // Determine the winner based on who disconnected
         if (uniquesocket.id === game.players.white) {
+            winner = "Black";
             delete game.players.white;
         } else if (uniquesocket.id === game.players.black) {
+            winner = "White";
             delete game.players.black;
         }
+
+        if (winner) {
+            // Notify all players about the game over due to disconnection
+            io.to(uniquesocket.gameId).emit("gameover", `${winner} wins. The other player disconnected.`);
+            clearInterval(game.intervalID);
+        }
+
+        // Clean up waiting player if they disconnected
         if (waitingPlayer && waitingPlayer.socketId === uniquesocket.id) {
             waitingPlayer = null;
+        }
+
+        // Remove game if both players are disconnected
+        if (!game.players.white && !game.players.black) {
+            clearInterval(game.intervalID);
+            delete games[uniquesocket.gameId];
         }
     });
 
@@ -152,8 +173,17 @@ io.on("connection", function (uniquesocket) {
         }
     });
 
+    // Handling "resignGame" event
     uniquesocket.on("resignGame", () => {
-        uniquesocket.emit("gameover", "You resigned. The AI wins.");
+        const game = games[uniquesocket.gameId];
+        if (game) {
+            clearInterval(game.intervalID);
+            if (uniquesocket.id === game.players.white) {
+                io.to(uniquesocket.gameId).emit("gameover", "White resigned. Black wins.");
+            } else if (uniquesocket.id === game.players.black) {
+                io.to(uniquesocket.gameId).emit("gameover", "Black resigned. White wins.");
+            }
+        }
     });
 
     uniquesocket.on("disconnect", () => {

@@ -20,6 +20,86 @@
   }
   
 
+  /* Promotion Box Styling for Different Themes */
+
+/* Classic Theme */
+body.classic-theme .promotion-container {
+    background: rgba(255, 255, 255, 0.9); /* Light background with slight transparency */
+    border: 2px solid #000000; /* Black border for classic look */
+}
+
+body.classic-theme .promotion-button {
+    color: #000000; /* Black color for buttons */
+}
+
+body.classic-theme .promotion-button:hover {
+    transform: scale(1.1);
+    background-color: #e0d0a2; /* Light highlight color on hover */
+}
+
+/* Light Theme */
+body.light-theme .promotion-container {
+    background: rgba(240, 240, 240, 0.9); /* Light background with transparency */
+    border: 2px solid #c0c0c0; /* Light gray border */
+}
+
+body.light-theme .promotion-button {
+    color: #000000; /* Black color for buttons */
+}
+
+body.light-theme .promotion-button:hover {
+    transform: scale(1.1);
+    background-color: #f0f0f0; /* Slightly darker highlight on hover */
+}
+
+/* Dark Theme */
+body.dark-theme .promotion-container {
+    background: rgba(34, 34, 34, 0.9); /* Dark background with transparency */
+    border: 2px solid #222222; /* Dark border */
+}
+
+body.dark-theme .promotion-button {
+    color: #ffffff; /* White color for buttons */
+}
+
+body.dark-theme .promotion-button:hover {
+    transform: scale(1.1);
+    background-color: #444444; /* Darker highlight on hover */
+}
+
+/* Wooden Theme */
+body.wooden-theme .promotion-container {
+    background: rgba(164, 116, 53, 0.9); /* Wooden color background with transparency */
+    border: 2px solid #a27335; /* Dark wood border */
+}
+
+body.wooden-theme .promotion-button {
+    color: #ffffff; /* White color for buttons */
+}
+
+body.wooden-theme .promotion-button:hover {
+    transform: scale(1.1);
+    background-color: #d4a671; /* Light wood color highlight on hover */
+}
+
+/* Futuristic Theme */
+body.futuristic-theme .promotion-container {
+    background: rgba(27, 27, 27, 0.9); /* Dark, sleek background with transparency */
+    border: 2px solid #00ff00; /* Neon green border */
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); /* Neon glow effect */
+}
+
+body.futuristic-theme .promotion-button {
+    color: #00ff00; /* Neon green text */
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.8); /* Neon glow effect on text */
+}
+
+body.futuristic-theme .promotion-button:hover {
+    transform: scale(1.1);
+    background-color: #333333; /* Slightly lighter dark background on hover */
+}
+
+
 
 /* Classic Theme */
 body.classic-theme {
@@ -394,7 +474,7 @@ body.futuristic-theme .ranks-labels div {
 
 .promotion-container {
     display: flex;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(74, 151, 48, 0.8);
     border-radius: 8px;
     padding: 5px;
     z-index: 10;
@@ -417,6 +497,7 @@ body.futuristic-theme .ranks-labels div {
 
 .promotion-button:hover {
     transform: scale(1.1);
+    background-color: #e0d0a2;
 }
 
 /* Responsive adjustments */
@@ -478,13 +559,13 @@ body.futuristic-theme .ranks-labels div {
     }
 
     .promotion-container {
-        padding: 3px;
+        padding: 5px; /* Increase padding for larger size */
     }
 
     .promotion-button {
-        height: 30px;
-        width: 30px;
-        margin: 0 3px;
+        height: 40px; /* Increase button height */
+        width: 40px;  /* Increase button width */
+        margin: 0 4px; /* Increase margin between buttons */
     }
 }
 
@@ -559,25 +640,12 @@ body.futuristic-theme .ranks-labels div {
     }
 
     .promotion-container {
-        display: flex;
-        background: rgba(0, 0, 0, 0.8);
-        padding: 2px;
-        z-index: 10;
-        position: absolute; /* Change to absolute for correct positioning */
+        padding: 4px; /* Increase padding for even larger size */
     }
 
     .promotion-button {
-        margin: 0 2px;
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
-        color: white;
-        background: none;
-        border: none;
-        transition: transform 0.2s;
-    }
-
-    .promotion-button:hover {
-        transform: scale(1.2);
+        height: 30px; /* Increase button height */
+        width: 30px;  /* Increase button width */
+        margin: 0 5px; /* Increase margin between buttons */
     }
 }
