@@ -479,7 +479,7 @@ body.futuristic-theme .ranks-labels div {
     padding: 5px;
     z-index: 10;
     position: absolute;
-    transform: translate(-50%, -50%); /* Center the container on the pawn */
+    transform: translate(-30%, -50%); /* Center the container on the pawn */
     user-select: none; /* Disable text selection */
 }
 
@@ -559,13 +559,27 @@ body.futuristic-theme .ranks-labels div {
     }
 
     .promotion-container {
-        padding: 2px; /* Increase padding for larger size */
+        display: flex;
+        background: rgba(74, 151, 48, 0.8);
+        border-radius: 8px;
+        padding: 5px;
+        z-index: 10;
+        position: absolute;
+        transform: translate(-30%, -50%);
+        user-select: none;
+        
     }
 
     .promotion-button {
-        height: 35px; /* Increase button height */
-        width: 25px;  /* Increase button width */
-        margin: 0 2px; /* Increase margin between buttons */
+        height: 30px; /* Increase button height */
+        width: 30px;  /* Increase button width */
+        margin: 0 0px;
+        cursor: pointer;
+        color: white;
+        background: none;
+        border: none;
+        padding: 0;
+        transition: transform 0.2s;
     }
 }
 
@@ -646,6 +660,6 @@ body.futuristic-theme .ranks-labels div {
     .promotion-button {
         height: 25px; /* Increase button height */
         width: 25px;  /* Increase button width */
-        margin: 0 5px; /* Increase margin between buttons */
+        margin: 0 0px; /* Increase margin between buttons */
     }
 }
