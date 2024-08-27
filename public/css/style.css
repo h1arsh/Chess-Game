@@ -559,12 +559,12 @@ body.futuristic-theme .ranks-labels div {
     }
 
     .promotion-container {
-        padding: 5px; /* Increase padding for larger size */
+        padding: 4px; /* Increase padding for larger size */
     }
 
     .promotion-button {
-        height: 40px; /* Increase button height */
-        width: 40px;  /* Increase button width */
+        height: 30px; /* Increase button height */
+        width: 30px;  /* Increase button width */
         margin: 0 4px; /* Increase margin between buttons */
     }
 }
