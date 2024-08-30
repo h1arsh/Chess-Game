@@ -291,9 +291,11 @@ const showPromotionUI = (move, callback) => {
     );
     const targetSquareRect = targetSquare.getBoundingClientRect();
 
-    promotionUI.style.top = `${targetSquareRect.top + window.scrollY + targetSquareRect.height/2  -70}px`;
-    promotionUI.style.left = `${targetSquareRect.left + window.scrollX + targetSquareRect.width/2}px`;
-
+    // Set the promotion UI style for direct square overlay
+    promotionUI.style.position = 'absolute';
+    promotionUI.style.top = `${targetSquareRect.top + window.scrollY}px`;
+    promotionUI.style.left = `${targetSquareRect.left + window.scrollX}px`;
+    
     document.body.appendChild(promotionUI);
 };
 
