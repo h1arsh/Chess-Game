@@ -225,12 +225,14 @@ function handlePromotionAndMove(move)
 
     // Check for pawn promotion
     if (chess.get(move.from).type === 'p' && ((chess.turn() === 'b' && move.to[1] === '1') || (chess.turn() === 'w' && move.to[1] === '8'))) {
-        showPromotionUI(move, (promotion) => {
-            move.promotion = promotion;
-            chess.move(move); // Make the promotion move on the board
-            promote.play(); // Play promotion sound
-            socket.emit("move", move);
-        });
+        setTimeout(() => {
+            showPromotionUI(move, (promotion) => {
+                move.promotion = promotion;
+                chess.move(move); // Make the promotion move on the board
+                promote.play(); // Play promotion sound
+                socket.emit("move", move);
+            });
+        }, 500); // 2-second delay before showing the promotion UI
     } else {
         const legalMove = chess.move(move);
         if (legalMove) {
