@@ -232,7 +232,7 @@ function handlePromotionAndMove(move)
                 promote.play(); // Play promotion sound
                 socket.emit("move", move);
             });
-        }, 500); // 2-second delay before showing the promotion UI
+        }, 100); 
     } else {
         const legalMove = chess.move(move);
         if (legalMove) {
