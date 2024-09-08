@@ -1,0 +1,1 @@
+Developed a real-time multiplayer chess game using React.js, Node.js, Express.js, and Socket.IO, with dynamic EJS templates and a responsive design powered by Tailwind CSS. The game features multiple themes for the chessboard, allowing players to customize their gaming experience while enjoying seamless, real-time gameplay.
